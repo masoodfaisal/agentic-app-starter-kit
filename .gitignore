@@ -1,0 +1,14 @@
+
+# Ignore Python virtual environments named .venv anywhere in the repo
+.venv/
+**/.venv/
+.venv
+iac/.terraform
+iac/terraform.tfstate
+iac/terraform.tfstate.backup
+iac/.terraform.lock.hcl
+
+__pycache__
+**/__pycache__/
+
+terraform.tfstate

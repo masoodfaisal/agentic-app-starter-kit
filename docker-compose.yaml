@@ -1,0 +1,141 @@
+# version: '3.8'
+
+services:
+  # --- Infrastructure: Milvus (Vector DB) - Standalone ---
+  milvus:
+    build: ./code/milvus
+    container_name: milvus-standalone
+    # image: public.ecr.aws/p7b6k2h9/mod-app:milvus-starter-0.0.1
+    image: mod-app:milvus-starter-0.0.1
+    command: ["milvus", "run", "standalone"]
+    environment:
+      - ETCD_USE_EMBED=true
+      - COMMON_STORAGETYPE=local    
+      - LOG_LEVEL=warn
+    # volumes:
+    #   - milvus_data:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    # standalone mode runs internal components; no external etcd/minio required
+
+  # --- Infrastructure: Telemetry (Jaeger) ---
+  jaeger:
+    # image: jaegertracing/all-in-one:latest
+    image: jaegertracing/jaeger:2.2.0
+    container_name: jaeger
+    ports:
+      - "16686:16686" # Web UI
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  # --- AI Gateway (LiteLLM) ---
+  ai-gateway:
+    build: ./code/ai-gateway
+    image: mod-app:aigateway-starter-0.0.1
+    container_name: ai-gateway
+    ports:
+      - "4000:4000" # Map host 4000 to container 4000
+    environment:
+      - OPENAI_API_KEY=sk-123456
+      - LITELLM_MASTER_KEY=sk-123456
+      - UI_USERNAME=admin
+      - UI_PASSWORD=12345678
+      # - DATABASE_URL=sqlite:///app/litellm.db
+      # - STORE_MODEL_IN_DB=False
+      # - USE_PRISMA_MIGRATE=True
+    volumes:
+      - ./code/ai-gateway/config.yaml:/app/config.yaml
+      - litellm_data:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health/readiness"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  # --- MCP Server ---
+  mcp:
+    build: ./code/mcp
+    container_name: mcp
+    image: mod-app:mcp-starter-0.0.1
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./code/mcp:/app
+    command: ["python3", "main.py"]
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+
+
+  # --- Agent Service (LangGraph) ---
+  agent:
+    build: ./code/agent
+    image: mod-app:agent-starter-0.0.1
+    container_name: agent
+    ports:
+      - "8000:8000"
+    environment:
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+      # - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:3000/api/public/otel/v1/traces
+      - OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic cGstbGYtMWU1NWQzYTQtZGViZi00MzgxLWE5N2MtNzIzYTg0NDZjYzQwOnNrLWxmLTc3ZjhkNTQ4LWE1M2EtNGYwYy1iYmJmLWVhNzc1NTk4MDRlNA==
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - LANGFUSE_PUBLIC_KEY=pk-lf-XXXXXX
+      - LANGFUSE_SECRET_KEY=sk-lf-XXXXXX
+      - LANGFUSE_BASE_URL=http://host.docker.internal:3000
+
+      - OPENAI_API_KEY=sk-123456
+      - OPENAI_BASE_URL=http://ai-gateway:4000
+      - MODEL_NAME=llama-distributed
+      - MCP_HOST=mcp
+      - MCP_PORT=8000
+      # - EMBEDDING_MODEL=text-embedding-ada-002 # Needs standard OpenAI or LiteLLM that supports embeddings
+    depends_on:
+      milvus:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+      ai-gateway:
+        condition: service_healthy
+      mcp:
+        condition: service_started
+    volumes:
+      - ./code/agent:/app
+
+  # --- Application (Streamlit) ---
+  app:
+    build: ./code/app
+    image: mod-app:app-starter-0.0.1
+    container_name: app
+    ports:
+      - "8501:8501"
+    environment:
+      - AGENT_HOST=http://agent:8000
+      - CHAT_ENDPOINT=http://agent:8000/chat
+      - THREAD_ID=default
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+      # - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:3000/api/public/otel/v1/traces
+      # echo -n "pk-lf-1e55d3a4-debf-4381-a97c-723a8446cc40:sk-lf-77f8d548-a53a-4f0c-bbbf-ea77559804e4" | base64
+      - OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic cGstbGYtMWU1NWQzYTQtZGViZi00MzgxLWE5N2MtNzIzYTg0NDZjYzQwOnNrLWxmLTc3ZjhkNTQ4LWE1M2EtNGYwYy1iYmJmLWVhNzc1NTk4MDRlNA==
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - LANGFUSE_PUBLIC_KEY=pk-lf-XXXXXX
+      - LANGFUSE_SECRET_KEY=sk-lf-XXXXXX
+      - LANGFUSE_BASE_URL=http://host.docker.internal:3000
+
+    depends_on:
+      - agent
+    volumes:
+      - ./code/app:/app
+
+
+volumes:
+  litellm_data:
