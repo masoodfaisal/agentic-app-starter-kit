@@ -3,3 +3,4 @@ opentelemetry-sdk
 opentelemetry-exporter-otlp
 opentelemetry-exporter-otlp-proto-http
 requests
+httpx==0.28.1
