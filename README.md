@@ -33,7 +33,7 @@ flowchart TD
             Model[Model Flexibility<br/>OpenAI API]
             Vis[Visibility<br/>OpenTelemetry]
             Mem[Memory<br/>Mem0 Protocol]
-            MCP[Tool and Data Access]
+            MCP[Tool and Data Access<br/>Model Context Protocol]
 
         end
         
