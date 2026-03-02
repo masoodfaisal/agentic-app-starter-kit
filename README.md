@@ -33,18 +33,23 @@ flowchart TD
             Model[Model Flexibility<br/>OpenAI API]
             Vis[Visibility<br/>OpenTelemetry]
             Mem[Memory<br/>Mem0 Protocol]
+            MCP[Tool and Data Access]
+
         end
         
         Model --- ModelDesc[Swap models seamlessly without code changes]
         Vis --- VisDesc[Vendor-neutral tracing and evaluation]
         Mem --- MemDesc[Standardized long-term memory operations]
+        MCP --- MCPDesc[Standardized protocol for tools and data]
     end
 
     style Model fill:#4ecdc4,color:#fff
     style Vis fill:#ff6b6b,color:#fff
     style Mem fill:#f9a825,color:#fff
+    style MCP fill:#f9a666,color:#fff
     style APIs fill:#f9f9f9,stroke:#333,stroke-width:2px
 ```
+
 
 ## Comprehensive Evaluation
 Write evaluation with the user query and expected outcome (white box testing). And the user query and valdiate tools get called in order, LLM prompt for each interaction during the call and if the data sources are being accessed with right information. You will see in this repo that we have used the OTEL library to collect information and validate it using our evaluation code.
