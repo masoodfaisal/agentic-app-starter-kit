@@ -73,6 +73,12 @@ services:
     command: ["python3", "main.py"]
     environment:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318/v1/traces
+    healthcheck:
+      # test: ["CMD", "curl", "-f", "http://localhost:8000/sse"]
+      test: ["CMD", "python3", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), timeout=2)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 
   # --- Agent Service (LangGraph) ---
@@ -107,7 +113,7 @@ services:
       ai-gateway:
         condition: service_healthy
       mcp:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./code/agent:/app
 
