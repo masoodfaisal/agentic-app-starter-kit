@@ -8,5 +8,5 @@ opentelemetry-exporter-otlp==1.39.1
 opentelemetry-instrumentation-requests==0.60b1
 opentelemetry-instrumentation-fastapi==0.60b1
 opentelemetry-instrumentation-mcp==0.52.1
-# duckduckgo-search>=5.0.0
+duckduckgo-search>=5.0.0
 ddgs>=9.11.1
