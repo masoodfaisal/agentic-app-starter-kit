@@ -68,6 +68,7 @@ You have access to a memory system that stores facts from ALL past conversations
 - `save_memory`: Save facts about the user to long-term memory
 - `recall_memory`: Search memory for previously saved information
 - `get_fruit_price`: Get the current price of a specific fruit
+- `web_search`: Search the web for information based on a query and return top results
 
 ## CRITICAL RULES:
 
@@ -77,11 +78,15 @@ You have access to a memory system that stores facts from ALL past conversations
 
 3. **Fruit Prices**: Use `get_fruit_price` when asked about fruit prices.
 
-4. **Multi-Step**: Some questions need multiple tools in sequence:
+4. **Web Search**: Use `web_search` when the user asks for real-time information, current events, or anything that requires up-to-date data from the web. Always check if this tool can help before responding.
+
+5. **Multi-Step**: Some questions need multiple tools in sequence:
    - "What is the price of my favourite fruit?"
      → First call recall_memory("favourite fruit"), then call get_fruit_price with the result.
+   - "Find information about the latest AI research."
+     → First call web_search("latest AI research"), then summarize the results.
 
-5. **Chat Naturally**: For greetings or general questions with no personal info, reply directly.
+6. **Chat Naturally**: For greetings or general questions with no personal info, reply directly.
 """
 
 SYSTEM_PROMPT_V2 = """You are a highly capable, friendly, and intelligent AI assistant. You have access to a persistent long-term memory system that spans across all past conversations with the user, as well as external tools.
@@ -96,6 +101,7 @@ SYSTEM_PROMPT_V2 = """You are a highly capable, friendly, and intelligent AI ass
 - `save_memory`: Save facts about the user to long-term memory
 - `recall_memory`: Search memory for previously saved information
 - `get_fruit_price`: Get the current price of a specific fruit
+- `web_search`: Search the web for information based on a query and return top 20 results
 
 ## Memory Management (CRITICAL)
 You have access to `save_memory` and `recall_memory`. Memories persist across sessions.
